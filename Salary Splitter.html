@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Expense Splitter — Colorful</title>
+<link rel="icon" href="data:," />
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --accent1:#7c3aed;
+    --accent2:#ec4899;
+    --accent3:#06b6d4;
+    --glass: rgba(255,255,255,0.04);
+    --muted: rgba(255,255,255,0.65);
+    --success: #10b981;
+    --danger:#ef4444;
+    --radius:14px;
+    color-scheme: dark;
+  }
+  html,body{height:100%;margin:0;background:
+    radial-gradient(600px 300px at 10% 10%, rgba(124,58,237,0.12), transparent 6%),
+    radial-gradient(500px 250px at 90% 90%, rgba(236,72,153,0.08), transparent 6%),
+    var(--bg);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  .wrap{
+    max-width:980px;
+    margin:28px auto;
+    padding:18px;
+    display:grid;
+    grid-template-columns: 1fr 380px;
+    gap:18px;
+  }
+  @media (max-width:900px){ .wrap{grid-template-columns:1fr; padding:12px} }
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:var(--radius);
+    padding:16px;
+    box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+
+  h1{margin:0;font-size:20px;letter-spacing:-0.2px}
+  .muted{color:var(--muted);font-size:13px;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:6px;color:#e6eef8}
+  .input{
+    display:flex;gap:8px;align-items:center;
+  }
+  input[type="text"], input[type="number"]{
+    background:transparent;border:1px solid rgba(255,255,255,0.06);
+    padding:12px 14px;border-radius:10px;color:#fff;font-size:16px;outline:none;width:100%;
+  }
+  input[type="text"]::placeholder{color:rgba(255,255,255,0.35)}
+  .currency-prefix{padding:8px 12px;border-radius:10px;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);color:#fff;border:1px solid rgba(255,255,255,0.03)}
+  .people-controls{display:inline-flex;align-items:center;background:var(--glass);padding:6px;border-radius:10px}
+  .btn-icon{background:transparent;border:0;color:#fff;font-size:20px;padding:6px;cursor:pointer;opacity:0.95}
+  .btn-icon:active{transform:scale(0.98)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.03);color:#fff;border:1px solid rgba(255,255,255,0.02);cursor:pointer;font-weight:600;user-select:none}
+  .chip.selected{background:linear-gradient(90deg,var(--accent1),var(--accent2));box-shadow:0 6px 18px rgba(124,58,237,0.18);color:white}
+  .slider-row{display:flex;gap:12px;align-items:center}
+  input[type="range"]{flex:1}
+  .small-in{width:84px}
+  .summary{display:flex;flex-direction:column;gap:10px}
+  .summary .row{display:flex;justify-content:space-between;align-items:center}
+  .big-value{font-size:28px;font-weight:900;letter-spacing:-0.6px}
+  .big-card{
+    border-radius:14px;padding:18px;background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:white;text-align:center;
+  }
+  .actions{display:flex;gap:10px;align-items:center}
+  .btn{
+    background:linear-gradient(90deg,var(--accent3),var(--accent1));
+    color:white;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700;
+  }
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+  .tiny{font-size:13px;color:rgba(255,255,255,0.9)}
+  .history-list{max-height:360px;overflow:auto;margin-top:12px;display:grid;gap:8px}
+  .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03)}
+  .muted-small{color:rgba(255,255,255,0.65);font-size:13px}
+  footer{grid-column:1/-1;text-align:center;margin-top:18px;color:rgba(255,255,255,0.5);font-size:13px}
+  .help{font-size:13px;color:rgba(255,255,255,0.7)}
+  .toggle{display:inline-flex;align-items:center;gap:8px}
+  .switch{
+    width:44px;height:24px;background:rgba(255,255,255,0.08);border-radius:999px;padding:3px;display:inline-flex;align-items:center;cursor:pointer;
+  }
+  .switch .knob{width:18px;height:18px;border-radius:50%;background:white;transform:translateX(0);transition:transform .18s cubic-bezier(.2,.9,.3,1)}
+  .switch.on{background:linear-gradient(90deg,var(--accent1),var(--accent2))}
+  .switch.on .knob{transform:translateX(20px)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:rgba(0,0,0,0.7);color:white;padding:10px 14px;border-radius:10px;font-weight:600}
+  .row-gap{display:flex;gap:10px;align-items:center}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="card" aria-labelledby="title-left">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h1 id="title-left">Expense Splitter</h1>
+        <div class="muted">Nice — colourful, fast & saves history locally</div>
+      </div>
+      <div style="text-align:right">
+        <button id="exampleBtn" class="btn ghost" title="Load example">Example</button>
+      </div>
+    </div>
+
+    <hr style="border:none;height:12px;background:transparent">
+
+    <!-- Amount -->
+    <label for="total">Enter total amount</label>
+    <div class="input" style="gap:10px">
+      <div class="currency-prefix">₹</div>
+      <input id="total" type="text" inputmode="decimal" placeholder="e.g. 1500" aria-label="Total amount">
+      <button id="clearTotal" class="btn ghost" title="Clear">Clear</button>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <!-- People -->
+    <label>Number of people</label>
+    <div class="row-gap">
+      <div class="people-controls" role="group" aria-label="People controls">
+        <button id="decPeople" class="btn-icon" title="Decrease">−</button>
+        <div id="peopleCount" style="min-width:36px;text-align:center;font-weight:800;color:#fff">2</div>
+        <button id="incPeople" class="btn-icon" title="Increase">+</button>
+      </div>
+      <div class="muted-small">Split evenly between people</div>
+    </div>
+
+    <div style="height:14px"></div>
+
+    <!-- Tip -->
+    <label>Tip</label>
+    <div class="chips" id="tipChips" role="list">
+      <div class="chip" data-val="0">0%</div>
+      <div class="chip" data-val="5">5%</div>
+      <div class="chip selected" data-val="10">10%</div>
+      <div class="chip" data-val="15">15%</div>
+      <div class="chip" data-val="20">20%</div>
+    </div>
+
+    <div style="height:10px"></div>
+    <div class="slider-row">
+      <input id="tipRange" type="range" min="0" max="100" step="1" value="10" aria-label="Tip percent slider">
+      <input id="customTip" class="small-in" type="number" min="0" max="100" value="10" aria-label="Custom tip percent">%
+      <button id="applyTip" class="btn ghost">Apply</button>
+    </div>
+
+    <div style="height:14px"></div>
+
+    <div class="row-gap" style="justify-content:space-between">
+      <div class="toggle help">
+        <div style="font-weight:700">Round per person up</div>
+        <div id="roundSwitch" class="switch" role="switch" aria-checked="false" tabindex="0">
+          <div class="knob"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="saveBtn" class="btn">Save</button>
+        <button id="clearBtn" class="btn ghost">Clear all</button>
+      </div>
+    </div>
+
+    <hr style="border:none;height:12px;background:transparent">
+
+    <!-- Summary small -->
+    <div class="summary">
+      <div class="row"><div class="muted-small">Tip amount</div><div id="tipAmt" class="muted-small">₹0.00</div></div>
+      <div class="row"><div class="muted-small">Total (with tip)</div><div id="totalWithTip" style="font-weight:800">₹0.00</div></div>
+      <div class="row" style="margin-top:6px"><div>
+        <div class="muted-small">Per person</div>
+        <div class="muted-small" id="perMeta">Split between 2</div>
+      </div><div class="big-value" id="perPerson">₹0.00</div></div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card big-card" aria-live="polite">
+      <div style="font-weight:700;font-size:15px">Total per person</div>
+      <div style="height:10px"></div>
+      <div class="big-value" id="bigPer">₹0.00</div>
+      <div style="height:6px"></div>
+      <div class="muted-small" id="bigMeta">₹0.00 total — tip 10%</div>
+      <div style="height:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button id="copyBtn" class="btn ghost">Copy</button>
+        <button id="shareBtn" class="btn ghost">Share</button>
+      </div>
+    </div>
+
+    <div style="height:14px"></div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>Saved splits</strong><div class="muted-small">Local history</div></div>
+        <button id="clearHistory" class="btn ghost">Clear</button>
+      </div>
+      <div class="history-list" id="historyList" aria-live="polite"></div>
+    </div>
+  </aside>
+
+  <footer>
+    <div class="muted-small">Made with ❤️ — open the file in any modern browser. Data stored locally (localStorage).</div>
+  </footer>
+</main>
+
+<!-- Toast -->
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+/* Expense Splitter — single file app
+   Features: calculation, rounding, history via localStorage, formatting INR
+*/
+
+// Utilities
+const fmt = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
+
+// Elements
+const totalInput = document.getElementById('total');
+const clearTotalBtn = document.getElementById('clearTotal');
+const decPeople = document.getElementById('decPeople');
+const incPeople = document.getElementById('incPeople');
+const peopleCount = document.getElementById('peopleCount');
+
+const tipChips = document.getElementById('tipChips');
+const tipRange = document.getElementById('tipRange');
+const customTip = document.getElementById('customTip');
+const applyTipBtn = document.getElementById('applyTip');
+
+const roundSwitch = document.getElementById('roundSwitch');
+const saveBtn = document.getElementById('saveBtn');
+const clearBtn = document.getElementById('clearBtn');
+const exampleBtn = document.getElementById('exampleBtn');
+
+const tipAmtEl = document.getElementById('tipAmt');
+const totalWithTipEl = document.getElementById('totalWithTip');
+const perPersonEl = document.getElementById('perPerson');
+const perMeta = document.getElementById('perMeta');
+
+const bigPer = document.getElementById('bigPer');
+const bigMeta = document.getElementById('bigMeta');
+const copyBtn = document.getElementById('copyBtn');
+const shareBtn = document.getElementById('shareBtn');
+
+const historyList = document.getElementById('historyList');
+const clearHistory = document.getElementById('clearHistory');
+const toast = document.getElementById('toast');
+
+// State
+let people = 2;
+let tipPercent = 10;
+let roundUp = false;
+
+// Helpers: careful arithmetic using Number (JS float safe enough for money here, but we format)
+function parseTotal(){
+  const raw = (totalInput.value || '').replace(/[,₹\s]/g,'').trim();
+  if (!raw) return 0;
+  // Accept commas and decimals
+  const n = Number(raw);
+  return isFinite(n) ? n : 0;
+}
+
+function showToast(text, ms=1600){
+  toast.textContent = text;
+  toast.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ toast.style.display='none'; }, ms);
+}
+
+// Calculation (explicit)
+function calculate(){
+  const total = parseTotal();
+  const tipAmount = +(total * (tipPercent/100));
+  const totalWithTip = +(total + tipAmount);
+  let perPerson = people > 0 ? totalWithTip / people : totalWithTip;
+  if (roundUp) perPerson = Math.ceil(perPerson);
+  // normalization to 2 decimals for display
+  return {
+    total: +total.toFixed(2),
+    tipAmount: +tipAmount.toFixed(2),
+    totalWithTip: +totalWithTip.toFixed(2),
+    perPerson: +perPerson.toFixed(2)
+  };
+}
+
+function refreshUI(){
+  const calc = calculate();
+  tipAmtEl.textContent = fmt.format(calc.tipAmount);
+  totalWithTipEl.textContent = fmt.format(calc.totalWithTip);
+  perPersonEl.textContent = fmt.format(calc.perPerson);
+  perMeta.textContent = `Split between ${people}`;
+  bigPer.textContent = fmt.format(calc.perPerson);
+  bigMeta.textContent = `${fmt.format(calc.totalWithTip)} total — tip ${Math.round(tipPercent)}%`;
+}
+
+// Tip chips interaction
+tipChips.addEventListener('click', e=>{
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  const val = Number(chip.dataset.val);
+  tipPercent = val;
+  tipRange.value = val;
+  customTip.value = val;
+  // update selected class
+  tipChips.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
+  chip.classList.add('selected');
+  refreshUI();
+});
+
+// Range and custom input
+tipRange.addEventListener('input', e=>{
+  tipPercent = Number(e.target.value);
+  customTip.value = Math.round(tipPercent);
+  // deselect chips if not matching one of preset values
+  tipChips.querySelectorAll('.chip').forEach(c=>{
+    c.classList.toggle('selected', Math.abs(Number(c.dataset.val)-tipPercent) < 0.5);
+  });
+  refreshUI();
+});
+applyTipBtn.addEventListener('click', ()=> {
+  const v = Number(customTip.value);
+  if (!isFinite(v) || v < 0) { showToast('Enter valid tip %'); return; }
+  tipPercent = v;
+  tipRange.value = v;
+  tipChips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('selected', Math.abs(Number(c.dataset.val)-tipPercent) < 0.5));
+  refreshUI();
+});
+
+// People controls
+decPeople.addEventListener('click', ()=> {
+  if (people > 1) people -= 1;
+  peopleCount.textContent = people;
+  refreshUI();
+});
+incPeople.addEventListener('click', ()=> {
+  if (people < 1000) people += 1;
+  peopleCount.textContent = people;
+  refreshUI();
+});
+
+// Round switch
+function setSwitch(on){
+  roundUp = !!on;
+  roundSwitch.classList.toggle('on', roundUp);
+  roundSwitch.setAttribute('aria-checked', String(!!roundUp));
+  refreshUI();
+}
+roundSwitch.addEventListener('click', ()=> setSwitch(!roundUp));
+roundSwitch.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter' || ev.key===' ') { ev.preventDefault(); setSwitch(!roundUp); } });
+
+// Clear and example
+clearTotalBtn.addEventListener('click', ()=> { totalInput.value=''; refreshUI(); });
+clearBtn.addEventListener('click', ()=>{
+  totalInput.value=''; people=2; tipPercent=10; tipRange.value=10; customTip.value=10;
+  peopleCount.textContent = people; tipChips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('selected', c.dataset.val==='10'));
+  setSwitch(false);
+  refreshUI();
+});
+
+exampleBtn.addEventListener('click', ()=>{
+  totalInput.value = '1500';
+  people = 3; peopleCount.textContent = people;
+  tipPercent = 10; tipRange.value = 10; customTip.value = 10;
+  tipChips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('selected', c.dataset.val==='10'));
+  setSwitch(false);
+  refreshUI();
+  showToast('Example loaded');
+});
+
+// Save & history (localStorage)
+const STORAGE_KEY = 'expense_splitter_history_v1';
+
+function loadHistory(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch(e){ return []; }
+}
+
+function saveHistoryItem(item){
+  const arr = loadHistory();
+  arr.push(item);
+  // keep a reasonable limit
+  while(arr.length > 200) arr.shift();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  renderHistory();
+}
+
+function renderHistory(){
+  const arr = loadHistory().slice().reverse(); // newest first
+  historyList.innerHTML = '';
+  if(arr.length === 0){ historyList.innerHTML = '<div class="muted-small">No saved splits yet.</div>'; return; }
+  arr.forEach((it, idx)=>{
+    const el = document.createElement('div');
+    el.className = 'history-item';
+    const left = document.createElement('div');
+    left.innerHTML = `<div style="font-weight:800">${fmt.format(it.perPerson)}</div><div class="muted-small">${it.people} people • tip ${it.tip}%</div>`;
+    const right = document.createElement('div');
+    right.style.textAlign='right';
+    right.innerHTML = `<div class="muted-small">${fmt.format(it.totalWithTip)} total</div><div class="muted-small">${new Date(it.timestamp).toLocaleString()}</div>`;
+    el.appendChild(left);
+    el.appendChild(right);
+    el.addEventListener('click', ()=>{
+      // show details dialog (simple)
+      const d = document.createElement('div');
+      d.style.position='fixed';d.style.left=0;d.style.top=0;d.style.right=0;d.style.bottom=0;
+      d.style.background='rgba(0,0,0,0.6)';d.style.display='flex';d.style.alignItems='center';d.style.justifyContent='center';
+      const c = document.createElement('div'); c.className='card'; c.style.maxWidth='420px'; c.style.width='90%';
+      c.innerHTML = `<div style="display:flex;justify-content:space-between"><strong>Split details</strong><button id="closeX" class="btn ghost">Close</button></div>
+        <div style="height:10px"></div>
+        <div class="muted-small">Original: ${fmt.format(it.total)}</div>
+        <div class="muted-small">Tip: ${fmt.format(it.tipAmount)} (${it.tip}%)</div>
+        <div class="muted-small">Total with tip: ${fmt.format(it.totalWithTip)}</div>
+        <div class="muted-small">People: ${it.people}</div>
+        <div class="muted-small">Per person: ${fmt.format(it.perPerson)}</div>
+        <div class="muted-small">Rounded: ${it.rounded ? 'Yes' : 'No'}</div>
+        <div style="height:12px"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="closeBtn" class="btn ghost">Close</button>
+          <button id="delBtn" class="btn" style="background:${'#ef4444'}">Delete</button>
+        </div>
+      `;
+      d.appendChild(c); document.body.appendChild(d);
+      d.querySelectorAll('#closeX,#closeBtn').forEach(x=>x.addEventListener('click', ()=> d.remove()));
+      d.querySelector('#delBtn').addEventListener('click', ()=>{
+        const preserved = loadHistory().filter(x=> x.timestamp !== it.timestamp);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(preserved));
+        d.remove(); renderHistory(); showToast('Deleted');
+      });
+    });
+    historyList.appendChild(el);
+  });
+}
+
+clearHistory.addEventListener('click', ()=>{
+  if (!confirm('Clear all saved splits? This removes local history.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderHistory();
+});
+
+// Save button
+saveBtn.addEventListener('click', ()=>{
+  const calc = calculate();
+  if (calc.total <= 0){ showToast('Enter a valid total amount'); return; }
+  const item = {
+    total: calc.total,
+    tip: Math.round(tipPercent),
+    tipAmount: calc.tipAmount,
+    totalWithTip: calc.totalWithTip,
+    people: people,
+    perPerson: calc.perPerson,
+    rounded: roundUp,
+    timestamp: new Date().toISOString()
+  };
+  saveHistoryItem(item);
+  showToast('Saved to history');
+});
+
+// Copy & share
+copyBtn.addEventListener('click', async ()=>{
+  const calc = calculate();
+  const text = `Each pays ${fmt.format(calc.perPerson)} (₹${calc.totalWithTip} total, tip ${Math.round(tipPercent)}%)`;
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('Copied');
+  }catch(e){
+    showToast('Copy failed');
+  }
+});
+
+shareBtn.addEventListener('click', async ()=>{
+  const calc = calculate();
+  const text = `Each pays ${fmt.format(calc.perPerson)} — total ${fmt.format(calc.totalWithTip)} (tip ${Math.round(tipPercent)}%)`;
+  if (navigator.share){
+    try { await navigator.share({ title:'Split', text }); showToast('Shared'); } catch(e){ /* canceled */ }
+  } else {
+    // fallback: copy
+    try { await navigator.clipboard.writeText(text); showToast('Copied to clipboard'); } catch(e){ showToast('Share not supported'); }
+  }
+});
+
+// format input as you type (friendly)
+totalInput.addEventListener('input', (e)=>{
+  const cursor = totalInput.selectionStart;
+  // allow only digits, dot, comma, ₹ and spaces
+  let s = totalInput.value.replace(/[^\d.,]/g,'');
+  // normalize multiple dots or commas -> keep last dot as decimal (simple approach)
+  // remove commas and format using Intl
+  const clean = s.replace(/,/g,'');
+  if(clean === '' || clean === '.' ){
+    // leave it
+    refreshUI(); return;
+  }
+  const n = Number(clean);
+  if (isFinite(n)){
+    // format integer part with group separators, preserve decimals if typed
+    const parts = clean.split('.');
+    const intPart = parts[0] ? Number(parts[0]) : 0;
+    let formatted = Intl.NumberFormat('en-IN').format(intPart);
+    if(parts.length > 1){
+      formatted += '.' + parts[1].slice(0,2); // at most 2 decimals while typing
+    }
+    totalInput.value = formatted;
+    try { totalInput.setSelectionRange(cursor, cursor); } catch(e){}
+  }
+  refreshUI();
+});
+
+totalInput.addEventListener('blur', ()=>{
+  // ensure standard normalized format
+  const v = parseTotal();
+  totalInput.value = v === 0 ? '' : (v.toLocaleString('en-IN', { maximumFractionDigits: 2 }));
+  refreshUI();
+});
+
+// initialize default UI
+function init(){
+  peopleCount.textContent = people;
+  tipRange.value = tipPercent;
+  customTip.value = tipPercent;
+  tipChips.querySelectorAll('.chip').forEach(c=> c.classList.toggle('selected', c.dataset.val === String(tipPercent)));
+  setSwitch(false);
+  renderHistory();
+  refreshUI();
+}
+init();
+
+</script>
+</body>
+</html>
